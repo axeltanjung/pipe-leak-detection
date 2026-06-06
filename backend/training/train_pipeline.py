@@ -17,6 +17,8 @@ from backend.anomaly.lstm_detector import LSTMAnomalyDetector
 from backend.explainability.explainer import LeakExplainer
 
 
+CI_MODE = os.environ.get("CI_MODE", "false").lower() == "true"
+
 FEATURE_COLS = [
     "inlet_pressure", "outlet_pressure", "pressure_drop", "pressure_gradient",
     "pressure_variance", "flow_rate", "flow_velocity", "flow_turbulence_index",
@@ -33,6 +35,10 @@ def train_classification_model(data_path: str = "data/pipeline_sensor_data.csv")
     df = pd.read_csv(data_path)
     df = df.dropna(subset=["leak_detected"])
 
+    if CI_MODE:
+        df = df.head(10000)
+        print("CI_MODE: Using 10K rows for fast training")
+
     X = df[FEATURE_COLS].fillna(0)
     y = df["leak_detected"].astype(int)
 
@@ -45,8 +51,9 @@ def train_classification_model(data_path: str = "data/pipeline_sensor_data.csv")
 
     with mlflow.start_run(run_name="gradient_boosting_classifier"):
         print("Training Gradient Boosting Classifier...")
+        n_estimators = 50 if CI_MODE else 200
         model = GradientBoostingClassifier(
-            n_estimators=200,
+            n_estimators=n_estimators,
             max_depth=6,
             learning_rate=0.1,
             subsample=0.8,
@@ -92,7 +99,7 @@ def train_lstm_anomaly_model(data_path: str = "data/pipeline_sensor_data.csv"):
 
     normal_data = df[df["leak_detected"] == 0][FEATURE_COLS].fillna(0).values
 
-    sample_size = min(50000, len(normal_data))
+    sample_size = min(5000 if CI_MODE else 50000, len(normal_data))
     normal_sample = normal_data[:sample_size]
 
     input_dim = len(FEATURE_COLS)
@@ -107,9 +114,10 @@ def train_lstm_anomaly_model(data_path: str = "data/pipeline_sensor_data.csv"):
     mlflow.set_experiment("pipeline-leak-detection")
 
     with mlflow.start_run(run_name="lstm_anomaly_detector"):
+        epochs = 5 if CI_MODE else 30
         history = detector.train(
             normal_sample,
-            epochs=30,
+            epochs=epochs,
             batch_size=64,
             learning_rate=0.001,
         )
