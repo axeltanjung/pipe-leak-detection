@@ -64,13 +64,25 @@ class PipelineMonitoringService:
             return {"error": f"Pipeline {pipeline_id} not found"}
 
         latest = pipeline_data.iloc[-1]
+
+        def safe_numeric(value, default: float = 0.0) -> float:
+            if pd.isna(value):
+                return default
+            value = float(value)
+            if not np.isfinite(value):
+                return default
+            return value
+
         assessment = self.risk_engine.compute_risk(
-            pressure_score=latest.get("pressure_anomaly_score", 0),
-            acoustic_score=latest.get("acoustic_anomaly_score", 0),
-            structural_score=latest.get("structural_risk_index", 0),
-            flow_score=latest.get("flow_imbalance_score", 0),
+            pressure_score=safe_numeric(latest.get("pressure_anomaly_score", 0)),
+            acoustic_score=safe_numeric(latest.get("acoustic_anomaly_score", 0)),
+            structural_score=safe_numeric(latest.get("structural_risk_index", 0)),
+            flow_score=safe_numeric(latest.get("flow_imbalance_score", 0)),
             pipeline_id=pipeline_id,
         )
+
+        pipe_age_series = pipeline_data["pipe_age"].dropna()
+        pipe_age = safe_numeric(pipe_age_series.iloc[0] if not pipe_age_series.empty else 0.0)
 
         return {
             "pipeline_id": pipeline_id,
@@ -91,10 +103,10 @@ class PipelineMonitoringService:
                 "leak_probability": pipeline_data["leak_probability"].tolist(),
             },
             "statistics": {
-                "avg_pressure": float(pipeline_data["inlet_pressure"].mean()),
-                "avg_flow": float(pipeline_data["flow_rate"].mean()),
-                "avg_acoustic": float(pipeline_data["acoustic_signal_amplitude"].mean()),
-                "pipe_age": float(pipeline_data["pipe_age"].iloc[0]),
+                "avg_pressure": safe_numeric(pipeline_data["inlet_pressure"].mean()),
+                "avg_flow": safe_numeric(pipeline_data["flow_rate"].mean()),
+                "avg_acoustic": safe_numeric(pipeline_data["acoustic_signal_amplitude"].mean()),
+                "pipe_age": pipe_age,
             },
         }
 
