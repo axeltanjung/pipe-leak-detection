@@ -11,6 +11,16 @@ An enterprise-grade AI system for early detection of pipeline leaks in Oil & Gas
 
 ---
 
+## Project Overview
+
+<img src="assets/Dashboard.png" width="1200"/>
+
+<img src="assets/Alert Center.png" width="1200"/>
+
+<img src="assets/AI Insights.png" width="1200"/>
+
+<img src="assets/Network View.png" width="1200"/>
+
 ## Project Background
 
 Pipeline leaks in the Oil & Gas industry represent critical failure events that can cause:
