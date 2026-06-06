@@ -84,6 +84,8 @@ class PipelineMonitoringService:
         pipe_age_series = pipeline_data["pipe_age"].dropna()
         pipe_age = safe_numeric(pipe_age_series.iloc[0] if not pipe_age_series.empty else 0.0)
 
+        pipeline_data = pipeline_data.fillna(0)
+        
         return {
             "pipeline_id": pipeline_id,
             "risk_assessment": {
